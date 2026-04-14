@@ -251,6 +251,17 @@ st.markdown("""
         box-shadow: 0 0 40px rgba(0,255,136,0.2);
     }
 
+    .stFileUploader [data-testid="stUploadedFile"] {
+        border: 1px solid rgba(0, 217, 255, 0.4) !important;
+        background: rgba(102, 126, 234, 0.15) !important;
+    }
+
+    @media (max-width: 768px) {
+        .stFileUploader [data-testid="stUploadedFile"] {
+            border-left: 3px solid #00d9ff !important;
+        }
+    }
+
     ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
