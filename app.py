@@ -276,7 +276,93 @@ st.markdown("""
         background: linear-gradient(180deg, #667eea, #764ba2);
         border-radius: 10px;
     }
+
+    /* ============================================
+       📱 MOBILE FIX - ADDED (Do not remove)
+       ============================================ */
+
+    /* Force hide error icons in file uploader */
+    .stFileUploader [data-testid="stUploadedFile"] svg[viewBox="0 0 24 24"],
+    .stFileUploader [data-testid="stUploadedFile"] svg[data-testid="stIcon"],
+    .stFileUploader [role="alert"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }
+
+    /* Override any inline error styles */
+    .stFileUploader [data-testid="stUploadedFile"][style*="border-color"] {
+        border-color: rgba(0, 217, 255, 0.4) !important;
+        border-left: 3px solid #00d9ff !important;
+        background: rgba(102, 126, 234, 0.15) !important;
+    }
+
+    /* Extra strong mobile override */
+    @media (max-width: 768px) {
+        .stFileUploader [data-testid="stUploadedFile"] {
+            border: 2px solid rgba(0, 255, 136, 0.6) !important;
+            border-left: 4px solid #00ff88 !important;
+            background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)) !important;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.15) !important;
+            padding: 14px !important;
+            border-radius: 12px !important;
+        }
+
+        /* Nuclear option: target all children */
+        .stFileUploader [data-testid="stUploadedFile"] * {
+            border-color: inherit !important;
+            color: inherit !important;
+        }
+
+        /* Hide anything that looks like an error */
+        .stFileUploader [data-testid="stUploadedFile"] span:empty,
+        .stFileUploader [data-testid="stUploadedFile"] small {
+            display: none !important;
+        }
+    }
 </style>
+""", unsafe_allow_html=True)
+
+# ============================================
+# 📱 JAVASCRIPT MOBILE FIX - ADDED (Do not remove)
+# ============================================
+st.markdown("""
+<script>
+(function() {
+    function removeRedBorder() {
+        // Find all uploaded file elements
+        const files = document.querySelectorAll('[data-testid="stUploadedFile"]');
+
+        files.forEach(function(file) {
+            // Force override styles
+            file.style.setProperty('border', '2px solid rgba(0, 255, 136, 0.6)', 'important');
+            file.style.setProperty('border-left', '4px solid #00ff88', 'important');
+            file.style.setProperty('background', 'linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2))', 'important');
+            file.style.setProperty('box-shadow', '0 4px 20px rgba(0, 255, 136, 0.15)', 'important');
+
+            // Find and hide warning/error icons
+            const icons = file.querySelectorAll('svg');
+            icons.forEach(function(icon) {
+                const rect = icon.getBoundingClientRect();
+                if (rect.width <= 24 && rect.height <= 24) {
+                    icon.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Run immediately
+    removeRedBorder();
+
+    // Run every 300ms to catch updates
+    setInterval(removeRedBorder, 300);
+
+    // Run on resize/orientation change
+    window.addEventListener('resize', removeRedBorder);
+})();
+</script>
 """, unsafe_allow_html=True)
 
 # ============================================
