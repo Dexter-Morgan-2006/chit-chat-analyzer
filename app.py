@@ -386,7 +386,6 @@ st.sidebar.markdown("6. Upload it")
 # ============================================
 uploaded_file = st.file_uploader(
     "📂 Choose a WhatsApp Chat File",
-    type=['txt', 'zip'],
     help="Supports both .txt and .zip files"
 )
 
