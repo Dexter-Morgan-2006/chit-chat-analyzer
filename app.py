@@ -52,60 +52,6 @@ st.markdown("""
         50% { background-position: 200% center; }
     }
 
-    .steps-container {
-        background: linear-gradient(135deg, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.15) 100%);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 16px;
-        padding: 20px;
-        margin: 20px 0;
-        backdrop-filter: blur(10px);
-    }
-
-    .step-item {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 16px;
-        padding: 12px;
-        background: rgba(255,255,255,0.03);
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        border-left: 3px solid #667eea;
-    }
-
-    .step-item:hover {
-        background: rgba(102,126,234,0.1);
-        transform: translateX(5px);
-        border-left-color: #00d9ff;
-    }
-
-    .step-number {
-        min-width: 32px;
-        height: 32px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        margin-right: 12px;
-        box-shadow: 0 4px 12px rgba(102,126,234,0.3);
-    }
-
-    .step-text {
-        color: #e2e8f0;
-        font-size: 13px;
-        line-height: 1.5;
-        flex: 1;
-        padding-top: 6px;
-    }
-
-    .step-icon {
-        font-size: 20px;
-        margin-right: 8px;
-    }
-
     .stSelectbox > div > div {
         background: rgba(255,255,255,0.05) !important;
         border: 1px solid rgba(255,255,255,0.15) !important;
@@ -251,72 +197,24 @@ st.markdown("""
         box-shadow: 0 0 40px rgba(0,255,136,0.2);
     }
 
+    /* Hide red error icon on uploaded file */
+    .stFileUploader [data-testid="stUploadedFile"] svg[data-testid="stIcon"],
+    .stFileUploader [data-testid="stUploadedFile"] [data-testid="stIconMaterial"],
+    .stFileUploader [role="alert"],
+    .stFileUploader [data-baseweb="notification"],
+    .stFileUploader [kind="error"] {
+        display: none !important;
+    }
+
     .stFileUploader [data-testid="stUploadedFile"] {
         border: 1px solid rgba(0, 217, 255, 0.4) !important;
         background: rgba(102, 126, 234, 0.15) !important;
+        border-radius: 8px !important;
     }
 
-    @media (max-width: 768px) {
-        .stFileUploader [data-testid="stUploadedFile"] {
-            border-left: 3px solid #00d9ff !important;
-        }
-    }
-
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.02);
-        border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #667eea, #764ba2);
-        border-radius: 10px;
-    }
-
-    /* ============================================
-       📱 MOBILE FIX - ADDED (Do not remove)
-       ============================================ */
-
-    .stFileUploader [data-testid="stUploadedFile"] svg[viewBox="0 0 24 24"],
-    .stFileUploader [data-testid="stUploadedFile"] svg[data-testid="stIcon"],
-    .stFileUploader [role="alert"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        position: absolute !important;
-        left: -9999px !important;
-    }
-
-    .stFileUploader [data-testid="stUploadedFile"][style*="border-color"] {
-        border-color: rgba(0, 217, 255, 0.4) !important;
-        border-left: 3px solid #00d9ff !important;
-        background: rgba(102, 126, 234, 0.15) !important;
-    }
-
-    @media (max-width: 768px) {
-        .stFileUploader [data-testid="stUploadedFile"] {
-            border: 2px solid rgba(0, 255, 136, 0.6) !important;
-            border-left: 4px solid #00ff88 !important;
-            background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)) !important;
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.15) !important;
-            padding: 14px !important;
-            border-radius: 12px !important;
-        }
-
-        .stFileUploader [data-testid="stUploadedFile"] * {
-            border-color: inherit !important;
-            color: inherit !important;
-        }
-
-        .stFileUploader [data-testid="stUploadedFile"] span:empty,
-        .stFileUploader [data-testid="stUploadedFile"] small {
-            display: none !important;
-        }
-    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #667eea, #764ba2); border-radius: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -332,19 +230,18 @@ st.sidebar.markdown("2. Tap the three dots on the top right corner")
 st.sidebar.markdown("3. Tap more")
 st.sidebar.markdown("4. Export Chat")
 st.sidebar.markdown("5. without media")
-st.sidebar.markdown("6. Upload it")
+st.sidebar.markdown("6. Upload the .zip file here")
 
 
 # ============================================
-# 📦 ZIP EXTRACTOR (accepts BytesIO for mobile)
+# 📦 ZIP EXTRACTOR
 # ============================================
 def extract_text_from_zip(zip_source):
-    """Extract text content from ZIP — works with file path or BytesIO"""
     try:
         with zipfile.ZipFile(zip_source, 'r') as z:
             txt_files = [f for f in z.namelist() if f.endswith('.txt')]
             if not txt_files:
-                st.error("❌ No .txt file found in the ZIP archive!")
+                st.error("❌ No .txt file found inside the ZIP!")
                 return None
             with z.open(txt_files[0]) as f:
                 return f.read().decode('utf-8')
@@ -358,47 +255,47 @@ def extract_text_from_zip(zip_source):
 
 # ============================================
 # 📁 FILE UPLOADER
-# FIX 1: type=[] suppresses Streamlit's mobile validation warning at source
-# FIX 2: magic bytes detection so renamed/extension-stripped files still work
-# FIX 3: BytesIO wrapping so ZIP reading is stable across all platforms
+#
+# ✅ ROOT CAUSE OF RED ❗ ON ANDROID CHROME:
+#    Android Chrome sends .zip files as MIME type "application/octet-stream".
+#    When type=["txt","zip"] is set, Streamlit's client-side validator
+#    rejects "octet-stream" → shows red ❗ icon.
+#
+# ✅ THE FIX:
+#    Remove type= entirely → no client-side MIME validation → no red ❗.
+#    File type is detected server-side using magic bytes instead.
 # ============================================
 uploaded_file = st.file_uploader(
     "📂 Choose a WhatsApp Chat File",
-    type=["txt", "zip"],          # FIX 1 — kills red exclamation on mobile
-    help="Supports both .txt and .zip files"
+    # ⚠️ NO type= parameter — intentional, fixes Android Chrome red ❗
+    help="Supports both .txt and .zip files exported from WhatsApp"
 )
+
 
 if uploaded_file is not None:
     try:
-        # Read raw bytes once
         bytes_data = uploaded_file.getvalue()
 
-        # FIX 2 — detect file type by magic bytes, NOT by filename
-        # PK\x03\x04 is the universal ZIP signature — works even if extension is missing/wrong
-        is_zip_by_magic   = bytes_data[:4] == b'PK\x03\x04'
-        is_zip_by_name    = uploaded_file.name.lower().endswith('.zip')
+        # Detect file type by magic bytes — reliable on all platforms
+        # PK\x03\x04 = ZIP file signature (works even if Android renames/mislabels it)
+        is_zip = bytes_data[:4] == b'PK\x03\x04'
 
-        if is_zip_by_magic or is_zip_by_name:
-            st.success("✅ ZIP file detected! Extracting...")
-            # FIX 3 — wrap in BytesIO so zipfile works on every platform
+        if is_zip:
+            st.success("✅ ZIP file detected! Extracting chat...")
             data = extract_text_from_zip(io.BytesIO(bytes_data))
             if data is None:
                 st.stop()
         else:
-            # Plain text file
             try:
                 data = bytes_data.decode("utf-8")
             except UnicodeDecodeError:
-                # Fallback encoding for some Android exports
                 data = bytes_data.decode("utf-8", errors="ignore")
 
         df = preprocessor.preprocess(data)
 
         user_list = df['user'].unique().tolist()
-
         if 'group notification' in user_list:
             user_list.remove('group notification')
-
         user_list.sort()
         user_list.insert(0, "Overall")
 
@@ -409,7 +306,6 @@ if uploaded_file is not None:
             num_messages, words, num_media_messages, num_links = helper.fetch_stats(selected_user, df)
 
             col1, col2, col3, col4 = st.columns(4)
-
             with col1:
                 st.metric(label="💬 Total Messages", value=f"{num_messages:,}")
             with col2:
@@ -422,7 +318,6 @@ if uploaded_file is not None:
             # Monthly Timeline
             st.title("📅 Monthly Timeline")
             timeline = helper.monthly_timeline(selected_user, df)
-
             fig_monthly, ax_monthly = plt.subplots(figsize=(14, 6))
             ax_monthly.plot(timeline['time'], timeline['message'],
                             color='#00d9ff', linewidth=3, marker='o', markersize=8,
@@ -442,7 +337,6 @@ if uploaded_file is not None:
             # Daily Timeline
             st.title("📆 Daily Timeline")
             daily_timeline = helper.daily_timeline(selected_user, df)
-
             fig_daily, ax_daily = plt.subplots(figsize=(14, 6))
             ax_daily.plot(daily_timeline['only_date'], daily_timeline['message'],
                           color='#f093fb', linewidth=2)
@@ -465,7 +359,6 @@ if uploaded_file is not None:
             with col1:
                 st.subheader("📅 Most Busy Day")
                 busy_day = helper.week_activity_map(selected_user, df)
-
                 fig_day, ax_day = plt.subplots(figsize=(10, 6))
                 colors_day = plt.cm.plasma(np.linspace(0, 1, len(busy_day)))
                 bars_day = ax_day.barh(busy_day.index, busy_day.values, color=colors_day)
@@ -483,7 +376,6 @@ if uploaded_file is not None:
             with col2:
                 st.subheader("📆 Most Busy Month")
                 busy_month = helper.month_activity_map(selected_user, df)
-
                 fig_month, ax_month = plt.subplots(figsize=(10, 6))
                 colors_month = plt.cm.viridis(np.linspace(0, 1, len(busy_month)))
                 bars_month = ax_month.bar(busy_month.index, busy_month.values, color=colors_month)
@@ -499,10 +391,9 @@ if uploaded_file is not None:
                 st.pyplot(fig_month)
                 plt.close()
 
-            # Heatmap
+            # Weekly Heatmap
             st.title("🗺️ Weekly Activity Heatmap")
             user_heatmap = helper.activity_heatmap(selected_user, df)
-
             fig_heat, ax_heat = plt.subplots(figsize=(12, 6))
             sns.heatmap(user_heatmap, ax=ax_heat, cmap='coolwarm', linewidths=0.5,
                         annot=True, fmt='.0f', annot_kws={'size': 11, 'weight': 'bold', 'color': 'white'},
@@ -521,9 +412,7 @@ if uploaded_file is not None:
             if selected_user == 'Overall':
                 st.title('👑 Vaile Users')
                 x, new_df = helper.most_busy_users(df)
-
                 col1, col2 = st.columns([1.2, 1])
-
                 with col1:
                     fig_users, ax_users = plt.subplots(figsize=(10, 6))
                     colors_users = ['#667eea', '#764ba2', '#f093fb', '#00d9ff', '#00ff88']
@@ -540,13 +429,11 @@ if uploaded_file is not None:
                     fig_users.patch.set_alpha(0)
                     st.pyplot(fig_users)
                     plt.close()
-
                 with col2:
                     st.dataframe(new_df.style.background_gradient(cmap='Blues'))
 
             # Wordcloud
             st.title("☁️ Wordcloud")
-
             if selected_user != 'Overall':
                 temp_df = df[df['user'] == selected_user]
             else:
@@ -554,69 +441,47 @@ if uploaded_file is not None:
 
             temp_df = temp_df[temp_df['user'] != 'group_notification']
             temp_df = temp_df[temp_df['message'] != '<Media omitted>\n']
-
             text_content = temp_df['message'].str.cat(sep=" ")
             word_count = len(text_content.split())
 
-            PARROT_AREA_THRESHOLD = 320000
             MIN_WORDS_REQUIRED = 100
+            PARROT_AREA_THRESHOLD = 320000
 
             wordcloud_placeholder = st.empty()
 
             if word_count < MIN_WORDS_REQUIRED or len(text_content) < PARROT_AREA_THRESHOLD * 0.5:
                 with wordcloud_placeholder.container():
-                    st.markdown(f"""
+                    st.markdown("""
                     <div style="
                         background: linear-gradient(135deg, rgba(255,107,107,0.15) 0%, rgba(255,165,0,0.15) 100%);
-                        border: 2px solid #ff6b6b;
-                        border-radius: 16px;
-                        padding: 40px;
-                        text-align: center;
-                        margin: 20px 0;
-                    ">
+                        border: 2px solid #ff6b6b; border-radius: 16px;
+                        padding: 40px; text-align: center; margin: 20px 0;">
                         <div style="font-size:60px; margin-bottom:20px;">📝</div>
-                        <h3 style="color:#fff; margin:15px 0; font-size:22px;">
-                            Content Too Short for Word Cloud
-                        </h3>
+                        <h3 style="color:#fff; margin:15px 0; font-size:22px;">Content Too Short for Word Cloud</h3>
                         <p style="color:#94a3b8; font-size:16px; margin:10px 0; line-height:1.6;">
-                            ⚠️ Not enough text data to generate a meaningful word cloud.
+                            ⚠️ Not enough text to generate a meaningful word cloud.
                         </p>
-                            💡 Try selecting "Overall" or a more active user for better results!
+                        <p style="color:#fff;">💡 Try selecting "Overall" or a more active user!</p>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 with wordcloud_placeholder.container():
-                    st.markdown("""
+                    st.markdown(f"""
                     <div style="
                         background: linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(118,75,162,0.2) 100%);
-                        border: 2px solid #667eea;
-                        border-radius: 16px;
-                        padding: 30px;
-                        text-align: center;
-                        margin: 20px 0;
-                        animation: pulse 2s infinite;
-                    ">
+                        border: 2px solid #667eea; border-radius: 16px;
+                        padding: 30px; text-align: center; margin: 20px 0;">
                         <div style="font-size:50px; margin-bottom:15px;">⚙️</div>
-                        <h3 style="color:#fff; margin:10px 0; font-size:20px;">Heavy Computation in Progress...</h3>
-                        <p style="color:#94a3b8; font-size:16px; margin:5px 0;">
-                            ⏳ Generating Word Cloud... Please wait awhile
-                        </p>
+                        <h3 style="color:#fff; margin:10px 0; font-size:20px;">Generating Word Cloud...</h3>
+                        <p style="color:#94a3b8; font-size:16px; margin:5px 0;">⏳ Please wait a moment</p>
                         <p style="color:#00d9ff; font-size:14px; font-style:italic;">
-                            💡 Processing {0} words of content...
+                            💡 Processing {word_count} words...
                         </p>
                     </div>
-
-                    <style>
-                    @keyframes pulse {{
-                        0%, 100% {{ transform: scale(1); opacity: 1; }}
-                        50% {{ transform: scale(1.02); opacity: 0.9; }}
-                    }}
-                    </style>
-                    """.format(word_count), unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
                 wc = helper.create_wordcloud(selected_user, df)
                 wordcloud_placeholder.empty()
-
                 fig_wc, ax_wc = plt.subplots(figsize=(12, 8))
                 ax_wc.imshow(wc, interpolation='bilinear')
                 ax_wc.axis("off")
@@ -625,8 +490,8 @@ if uploaded_file is not None:
                 plt.close()
 
             # Most Common Words
+            st.title('📝 Most Common Words')
             most_common_df = helper.most_common_words(selected_user, df)
-
             fig_words, ax_words = plt.subplots(figsize=(10, max(6, len(most_common_df) * 0.4)))
             colors_words = plt.cm.sunset(np.linspace(0, 1, len(most_common_df)))
             bars_words = ax_words.barh(most_common_df[0], most_common_df[1], color=colors_words)
@@ -639,8 +504,6 @@ if uploaded_file is not None:
                 ax_words.text(val + max(most_common_df[1]) * 0.02, bar.get_y() + bar.get_height() / 2,
                               str(val), va='center', color='white', fontweight='bold')
             fig_words.patch.set_alpha(0)
-
-            st.title('📝 Most Common Words')
             st.pyplot(fig_words)
             plt.close()
 
