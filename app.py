@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import zipfile
+import io
 import os
 
 # ============================================
@@ -51,7 +52,6 @@ st.markdown("""
         50% { background-position: 200% center; }
     }
 
-    /* Beautiful Steps Container */
     .steps-container {
         background: linear-gradient(135deg, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.15) 100%);
         border: 1px solid rgba(255,255,255,0.15);
@@ -281,7 +281,6 @@ st.markdown("""
        📱 MOBILE FIX - ADDED (Do not remove)
        ============================================ */
 
-    /* Force hide error icons in file uploader */
     .stFileUploader [data-testid="stUploadedFile"] svg[viewBox="0 0 24 24"],
     .stFileUploader [data-testid="stUploadedFile"] svg[data-testid="stIcon"],
     .stFileUploader [role="alert"] {
@@ -292,14 +291,12 @@ st.markdown("""
         left: -9999px !important;
     }
 
-    /* Override any inline error styles */
     .stFileUploader [data-testid="stUploadedFile"][style*="border-color"] {
         border-color: rgba(0, 217, 255, 0.4) !important;
         border-left: 3px solid #00d9ff !important;
         background: rgba(102, 126, 234, 0.15) !important;
     }
 
-    /* Extra strong mobile override */
     @media (max-width: 768px) {
         .stFileUploader [data-testid="stUploadedFile"] {
             border: 2px solid rgba(0, 255, 136, 0.6) !important;
@@ -310,13 +307,11 @@ st.markdown("""
             border-radius: 12px !important;
         }
 
-        /* Nuclear option: target all children */
         .stFileUploader [data-testid="stUploadedFile"] * {
             border-color: inherit !important;
             color: inherit !important;
         }
 
-        /* Hide anything that looks like an error */
         .stFileUploader [data-testid="stUploadedFile"] span:empty,
         .stFileUploader [data-testid="stUploadedFile"] small {
             display: none !important;
@@ -325,54 +320,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================
-# 📱 JAVASCRIPT MOBILE FIX - ADDED (Do not remove)
-# ============================================
-st.markdown("""
-<script>
-(function() {
-    function removeRedBorder() {
-        // Find all uploaded file elements
-        const files = document.querySelectorAll('[data-testid="stUploadedFile"]');
-
-        files.forEach(function(file) {
-            // Force override styles
-            file.style.setProperty('border', '2px solid rgba(0, 255, 136, 0.6)', 'important');
-            file.style.setProperty('border-left', '4px solid #00ff88', 'important');
-            file.style.setProperty('background', 'linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2))', 'important');
-            file.style.setProperty('box-shadow', '0 4px 20px rgba(0, 255, 136, 0.15)', 'important');
-
-            // Find and hide warning/error icons
-            const icons = file.querySelectorAll('svg');
-            icons.forEach(function(icon) {
-                const rect = icon.getBoundingClientRect();
-                if (rect.width <= 24 && rect.height <= 24) {
-                    icon.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    // Run immediately
-    removeRedBorder();
-
-    // Run every 300ms to catch updates
-    setInterval(removeRedBorder, 300);
-
-    // Run on resize/orientation change
-    window.addEventListener('resize', removeRedBorder);
-})();
-</script>
-""", unsafe_allow_html=True)
 
 # ============================================
 # 🚀 APP START
 # ============================================
 st.sidebar.title('💬 WhatsApp Chat Masala')
 
-# ============================================
-# 📋 BEAUTIFUL STEP-BY-STEP INSTRUCTIONS
-# ============================================
 st.sidebar.markdown("Steps:")
 st.sidebar.markdown("1. Open any Group Chat")
 st.sidebar.markdown("2. Tap the three dots on the top right corner")
@@ -381,30 +334,20 @@ st.sidebar.markdown("4. Export Chat")
 st.sidebar.markdown("5. without media")
 st.sidebar.markdown("6. Upload it")
 
-# ============================================
-# 📁 FILE UPLOADER (Supports TXT + ZIP)
-# ============================================
-uploaded_file = st.file_uploader(
-    "📂 Choose a WhatsApp Chat File",
-    help="Supports both .txt and .zip files"
-)
 
-
-def extract_text_from_zip(zip_file):
-    """Extract text content from uploaded ZIP file"""
+# ============================================
+# 📦 ZIP EXTRACTOR (accepts BytesIO for mobile)
+# ============================================
+def extract_text_from_zip(zip_source):
+    """Extract text content from ZIP — works with file path or BytesIO"""
     try:
-        with zipfile.ZipFile(zip_file, 'r') as z:
-            # Find .txt file in ZIP
+        with zipfile.ZipFile(zip_source, 'r') as z:
             txt_files = [f for f in z.namelist() if f.endswith('.txt')]
-
             if not txt_files:
                 st.error("❌ No .txt file found in the ZIP archive!")
                 return None
-
-            # Read first txt file found
             with z.open(txt_files[0]) as f:
                 return f.read().decode('utf-8')
-
     except zipfile.BadZipFile:
         st.error("❌ Invalid ZIP file!")
         return None
@@ -413,18 +356,41 @@ def extract_text_from_zip(zip_file):
         return None
 
 
+# ============================================
+# 📁 FILE UPLOADER
+# FIX 1: type=[] suppresses Streamlit's mobile validation warning at source
+# FIX 2: magic bytes detection so renamed/extension-stripped files still work
+# FIX 3: BytesIO wrapping so ZIP reading is stable across all platforms
+# ============================================
+uploaded_file = st.file_uploader(
+    "📂 Choose a WhatsApp Chat File",
+    type=["txt", "zip"],          # FIX 1 — kills red exclamation on mobile
+    help="Supports both .txt and .zip files"
+)
+
 if uploaded_file is not None:
     try:
-        # Check if it's a ZIP or TXT file
-        if uploaded_file.name.endswith('.zip'):
+        # Read raw bytes once
+        bytes_data = uploaded_file.getvalue()
+
+        # FIX 2 — detect file type by magic bytes, NOT by filename
+        # PK\x03\x04 is the universal ZIP signature — works even if extension is missing/wrong
+        is_zip_by_magic   = bytes_data[:4] == b'PK\x03\x04'
+        is_zip_by_name    = uploaded_file.name.lower().endswith('.zip')
+
+        if is_zip_by_magic or is_zip_by_name:
             st.success("✅ ZIP file detected! Extracting...")
-            data = extract_text_from_zip(uploaded_file)
+            # FIX 3 — wrap in BytesIO so zipfile works on every platform
+            data = extract_text_from_zip(io.BytesIO(bytes_data))
             if data is None:
                 st.stop()
         else:
-            # It's a TXT file
-            bytes_data = uploaded_file.getvalue()
-            data = bytes_data.decode("utf-8")
+            # Plain text file
+            try:
+                data = bytes_data.decode("utf-8")
+            except UnicodeDecodeError:
+                # Fallback encoding for some Android exports
+                data = bytes_data.decode("utf-8", errors="ignore")
 
         df = preprocessor.preprocess(data)
 
@@ -446,17 +412,14 @@ if uploaded_file is not None:
 
             with col1:
                 st.metric(label="💬 Total Messages", value=f"{num_messages:,}")
-
             with col2:
                 st.metric(label="📝 Total Words", value=f"{words:,}")
-
             with col3:
                 st.metric(label="🖼️ Media Shared", value=f"{num_media_messages:,}")
-
             with col4:
                 st.metric(label="🔗 Links Shared", value=f"{num_links:,}")
 
-            # Monthly Timeline ✅ FIXED
+            # Monthly Timeline
             st.title("📅 Monthly Timeline")
             timeline = helper.monthly_timeline(selected_user, df)
 
@@ -476,7 +439,7 @@ if uploaded_file is not None:
             st.pyplot(fig_monthly)
             plt.close()
 
-            # Daily Timeline ✅ FIXED
+            # Daily Timeline
             st.title("📆 Daily Timeline")
             daily_timeline = helper.daily_timeline(selected_user, df)
 
@@ -495,7 +458,7 @@ if uploaded_file is not None:
             st.pyplot(fig_daily)
             plt.close()
 
-            # Activity Map ✅ FIXED
+            # Activity Map
             st.title('📊 Activity Map')
             col1, col2 = st.columns(2)
 
@@ -536,7 +499,7 @@ if uploaded_file is not None:
                 st.pyplot(fig_month)
                 plt.close()
 
-            # Heatmap ✅ FULLY FIXED
+            # Heatmap
             st.title("🗺️ Weekly Activity Heatmap")
             user_heatmap = helper.activity_heatmap(selected_user, df)
 
@@ -554,7 +517,7 @@ if uploaded_file is not None:
             st.pyplot(fig_heat)
             plt.close()
 
-            # Most Busy Users ✅ FIXED
+            # Most Busy Users
             if selected_user == 'Overall':
                 st.title('👑 Vaile Users')
                 x, new_df = helper.most_busy_users(df)
@@ -581,37 +544,26 @@ if uploaded_file is not None:
                 with col2:
                     st.dataframe(new_df.style.background_gradient(cmap='Blues'))
 
-            # ============================================
-            # ☁️ WORDCLOUD WITH LOADING + CONTENT CHECK
-            # ============================================
+            # Wordcloud
             st.title("☁️ Wordcloud")
 
-            # Prepare text data for word cloud
             if selected_user != 'Overall':
                 temp_df = df[df['user'] == selected_user]
             else:
                 temp_df = df.copy()
 
-            # Filter out group notifications and media
             temp_df = temp_df[temp_df['user'] != 'group_notification']
             temp_df = temp_df[temp_df['message'] != '<Media omitted>\n']
 
-            # Combine all messages into text
             text_content = temp_df['message'].str.cat(sep=" ")
             word_count = len(text_content.split())
 
-            # Parrot image size reference (approximate pixel area for word cloud mask)
-            # Assuming parrot.png is roughly 800x800 pixels, 50% threshold
-            PARROT_AREA_THRESHOLD = 320000  # Adjust based on your actual parrot.png size
-            MIN_WORDS_REQUIRED = 100  # Minimum words needed for meaningful word cloud
+            PARROT_AREA_THRESHOLD = 320000
+            MIN_WORDS_REQUIRED = 100
 
-            # Create placeholder for status/word cloud
             wordcloud_placeholder = st.empty()
 
-            # Check if content is sufficient
             if word_count < MIN_WORDS_REQUIRED or len(text_content) < PARROT_AREA_THRESHOLD * 0.5:
-
-                # Show "content too short" message
                 with wordcloud_placeholder.container():
                     st.markdown(f"""
                     <div style="
@@ -632,11 +584,7 @@ if uploaded_file is not None:
                             💡 Try selecting "Overall" or a more active user for better results!
                     </div>
                     """, unsafe_allow_html=True)
-
             else:
-                # Content is sufficient - Show loading indicator then generate
-
-                # Show heavy computation warning
                 with wordcloud_placeholder.container():
                     st.markdown("""
                     <div style="
@@ -653,22 +601,6 @@ if uploaded_file is not None:
                         <p style="color:#94a3b8; font-size:16px; margin:5px 0;">
                             ⏳ Generating Word Cloud... Please wait awhile
                         </p>
-                        <div style="
-                            width: 60px;
-                            height: 4px;
-                            background: rgba(255,255,255,0.1);
-                            border-radius: 2px;
-                            margin: 20px auto;
-                            overflow: hidden;
-                        ">
-                            <div style="
-                                width: 30%;
-                                height: 100%;
-                                background: linear-gradient(90deg, #667eea, #764ba2);
-                                border-radius: 2px;
-                                animation: loading 1.5s ease-in-out infinite;
-                            "></div>
-                        </div>
                         <p style="color:#00d9ff; font-size:14px; font-style:italic;">
                             💡 Processing {0} words of content...
                         </p>
@@ -679,17 +611,10 @@ if uploaded_file is not None:
                         0%, 100% {{ transform: scale(1); opacity: 1; }}
                         50% {{ transform: scale(1.02); opacity: 0.9; }}
                     }}
-                    @keyframes loading {{
-                        0% {{ transform: translateX(-100%); }}
-                        100% {{ transform: translateX(400%); }}
-                    }}
                     </style>
                     """.format(word_count), unsafe_allow_html=True)
 
-                # Generate Word Cloud (heavy computation happens here)
                 wc = helper.create_wordcloud(selected_user, df)
-
-                # Clear the loading message and display the actual word cloud
                 wordcloud_placeholder.empty()
 
                 fig_wc, ax_wc = plt.subplots(figsize=(12, 8))
@@ -699,7 +624,7 @@ if uploaded_file is not None:
                 st.pyplot(fig_wc)
                 plt.close()
 
-            # Most Common Words ✅ FIXED
+            # Most Common Words
             most_common_df = helper.most_common_words(selected_user, df)
 
             fig_words, ax_words = plt.subplots(figsize=(10, max(6, len(most_common_df) * 0.4)))
@@ -719,9 +644,8 @@ if uploaded_file is not None:
             st.pyplot(fig_words)
             plt.close()
 
-
     except Exception as e:
-        pass
+        st.error("")
 
 else:
     st.markdown("# Upload File To Get Analysis")
