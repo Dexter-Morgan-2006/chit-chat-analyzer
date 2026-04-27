@@ -10,20 +10,11 @@ def preprocess(data):
     df = pd.DataFrame({'user_message': messages, 'message_date': dates})
 
     def parse_date(date_str):
-        date_str = date_str.strip().rstrip('- ').strip()
-        date_str = date_str.replace('\u202f', ' ')  # narrow no-break space → regular space
-        formats = [
-            '%m/%d/%y, %I:%M %p',
-            '%m/%d/%Y, %I:%M %p',
-            '%d/%m/%y, %I:%M %p',
-            '%d/%m/%Y, %I:%M %p',
-        ]
-        for fmt in formats:
-            try:
-                return pd.to_datetime(date_str, format=fmt)
-            except:
-                continue
-        return pd.NaT
+        date_str = date_str.replace('\u202f', ' ').strip().rstrip('- ').strip()
+        try:
+            return pd.to_datetime(date_str, format='%m/%d/%y, %I:%M %p')
+        except:
+            return pd.NaT
 
     df['message_date'] = df['message_date'].apply(parse_date)
     df.rename(columns={'message_date': 'date'}, inplace=True)
