@@ -1,28 +1,47 @@
 import re
 import pandas as pd
+
 def preprocess(data):
-    pattern = '\d{1,2}/\d{1,2}/\d{2},\s\d{1,2}:\d{2}\s(?:AM|PM)\s-\s'
+    pattern = r'\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\s-\s'
 
     messages = re.split(pattern, data)[1:]
     dates = re.findall(pattern, data)
-    dates = [d.replace('\u202fPM', '').replace('\u202fAM', '') for d in dates]
 
     df = pd.DataFrame({'user_message': messages, 'message_date': dates})
-    df['message_date'] = pd.to_datetime(df['message_date'], format='%m/%d/%y, %H:%M - ')
+
+    def parse_date(date_str):
+        date_str = date_str.strip().rstrip('- ').strip()
+        date_str = date_str.replace('\u202f', ' ')  # narrow no-break space → regular space
+        formats = [
+            '%m/%d/%y, %I:%M %p',
+            '%m/%d/%Y, %I:%M %p',
+            '%d/%m/%y, %I:%M %p',
+            '%d/%m/%Y, %I:%M %p',
+        ]
+        for fmt in formats:
+            try:
+                return pd.to_datetime(date_str, format=fmt)
+            except:
+                continue
+        return pd.NaT
+
+    df['message_date'] = df['message_date'].apply(parse_date)
     df.rename(columns={'message_date': 'date'}, inplace=True)
+    df.dropna(subset=['date'], inplace=True)
 
     users = []
-    messages = []
+    messages_list = []
     for message in df['user_message']:
-        entry = re.split('([\w\W]+?):\s', message)
+        entry = re.split(r'([\w\W]+?):\s', message)
         if entry[1:]:
             users.append(entry[1])
-            messages.append(entry[2])
+            messages_list.append(entry[2])
         else:
             users.append('group notification')
-            messages.append(entry[0])
+            messages_list.append(entry[0])
+
     df['user'] = users
-    df['message'] = messages
+    df['message'] = messages_list
     df.drop(columns=['user_message'], inplace=True)
 
     df['only_date'] = df['date'].dt.date
